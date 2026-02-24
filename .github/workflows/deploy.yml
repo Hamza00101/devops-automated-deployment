@@ -31,11 +31,27 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
+      - name: Get Public IP
+        id: tf_output
+        working-directory: ./terraform
+        run: echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      - name: Create SSH Key File
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/devops1-key.pem
+          chmod 600 ~/.ssh/devops1-key.pem
+
       - name: Install Ansible
         run: |
           sudo apt update
           sudo apt install ansible -y
 
+      - name: Create Dynamic Inventory
+        run: |
+          echo "[web]" > inventory.ini
+          echo "${PUBLIC_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/devops1-key.pem ansible_become=true ansible_become_method=sudo" >> inventory.ini
+
       - name: Run Ansible Playbook
         working-directory: ./ansible
-        run: ansible-playbook -i inventory.ini docker-install.yml
+        run: ansible-playbook -i ../inventory.ini docker-install.yml
