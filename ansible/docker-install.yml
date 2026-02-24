@@ -1,0 +1,54 @@
+---
+- name: Deploy Custom Web Application
+  hosts: web
+  become: yes
+  become_flags: "-n"
+
+  tasks:
+
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create app directory on EC2
+      file:
+        path: /home/ubuntu/app
+        state: directory
+
+    - name: Copy index.html to EC2
+      copy:
+        src: ../app/index.html
+        dest: /home/ubuntu/app/index.html
+
+    - name: Copy Dockerfile to EC2
+      copy:
+        src: ../app/Dockerfile
+        dest: /home/ubuntu/app/Dockerfile
+
+    - name: Build Docker image on EC2
+      command: docker build -t devops-custom-nginx /home/ubuntu/app
+
+    - name: Remove old container if exists
+      docker_container:
+        name: custom-nginx
+        state: absent
+
+    - name: Run custom container
+      docker_container:
+        name: custom-nginx
+        image: devops-custom-nginx
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:80"
