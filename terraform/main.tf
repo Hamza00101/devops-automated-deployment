@@ -1,3 +1,11 @@
+terraform {
+  backend "s3" {
+    bucket = "devops-terraform-state-rehman-2026"
+    key    = "global/s3/terraform.tfstate"
+    region = "eu-north-1"
+  }
+}
+
 provider "aws" {
   region = "eu-north-1"
 }
